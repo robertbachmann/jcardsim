@@ -19,7 +19,6 @@ import com.licel.jcardsim.utils.AIDUtil;
 import javacard.framework.*;
 import javacardx.apdu.ExtendedLength;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -141,7 +140,7 @@ public class SimulatorRuntime {
     protected void loadApplet(AID aid, Class<? extends Applet> appletClass) {
         // see specification
         if (lookupApplet(aid) != null) {
-            SystemException.throwIt(SystemException.ILLEGAL_AID);
+            throw new IllegalStateException("An applet with AID " + aid + " is already installed");
         }
         applets.put(aid, new AppletHolder(appletClass));
     }
@@ -152,7 +151,7 @@ public class SimulatorRuntime {
     protected void deleteApplet(AID aid) {
         AppletHolder appletHolder = lookupApplet(aid);
         if (appletHolder == null) {
-            throw new SystemException(SystemException.ILLEGAL_AID);
+            throw new IllegalArgumentException("Unknown AID " + aid);
         }
 
         applets.remove(aid);
@@ -187,7 +186,7 @@ public class SimulatorRuntime {
             ah = lookupApplet(aid);
         }
         if (ah == null) {
-            throw new SystemException(SystemException.ILLEGAL_AID);
+            throw new IllegalArgumentException("Unknown AID " + aid);
         }
         ah.setApplet(applet);
         ah.register();
@@ -214,9 +213,7 @@ public class SimulatorRuntime {
     }
 
     /**
-     * Transmit APDU to previous selected applet
-     * @param command command apdu
-     * @return response apdu
+     * @see com.licel.jcardsim.io.JavaCardInterface#transmitCommand(byte[])
      */
     byte[] transmitCommand(byte[] command) throws SystemException {
         final ApduCase apduCase = ApduCase.getCase(command);

@@ -16,7 +16,6 @@
 package com.licel.jcardsim.io;
 
 import javacard.framework.AID;
-import javacard.framework.SystemException;
 
 /**
  * Interface with JavaCard-specific functions
@@ -25,43 +24,39 @@ import javacard.framework.SystemException;
 public interface JavaCardInterface extends CardInterface {
 
     /**
-     * Load
-     * <code>Applet</code> into Simulator
-     *
-     * @param aid applet aid
-     * @param appletClassName fully qualified applet class name Strin
-     * @param appletJarContents contains a byte array containing a jar file with an applet and its dependent classes
-     * @return applet <code>AID</code>
-     * @throws SystemException if <code>appletClass</code> not instanceof
-     * <code>javacard.framework.Applet</code>
-     */
-    public AID loadApplet(AID aid, String appletClassName, byte[] appletJarContents) throws SystemException;
-
-    /**
-     * Load
-     * <code>Applet</code> into Simulator
+     * Load <code>Applet</code> into Simulator
      *
      * @param aid applet aid
      * @param appletClassName fully qualified applet class name String
-     * @return applet <code>AID</code>
-     * @throws SystemException if <code>appletClass</code> not instanceof
-     * <code>javacard.framework.Applet</code>
+     * @param appletJarContents contains a byte array containing a jar file with an applet and its dependent classes
+     * @return applet aid
+     * @throws java.lang.NullPointerException if <coce>aid</coce> or <code>appletClassName</code> is null
+     * @throws java.lang.IllegalArgumentException if <code>appletClass</code> does not extend <code>Applet</code>
+     */
+    public AID loadApplet(AID aid, String appletClassName, byte[] appletJarContents);
+
+    /**
+     * Load <code>Applet</code> into Simulator
+     *
+     * @param aid applet aid
+     * @param appletClassName fully qualified applet class name String
+     * @return applet aid
+     * @throws java.lang.NullPointerException if <coce>aid</coce> or <code>appletClassName</code> is null
+     * @throws java.lang.IllegalArgumentException if <code>appletClass</code> does not extend <code>Applet</code>
      */
     public AID loadApplet(AID aid, String appletClassName);
 
     /**
-     * Create
-     * <code>Applet</code> instance in Simulator
+     * Create an <code>Applet</code> instance in Simulator
      * @param aid applet aid
      * @param bArray the array containing installation parameters
      * @param bOffset the starting offset in bArray
      * @param bLength the length in bytes of the parameter data in bArray
-     * @return applet <code>AID</code>
-     * @throws SystemException if exception in <code>Applet.install(..)</code>
-     * method occurs.
+     * @return AID of the created applet
+     * @throws java.lang.NullPointerException if <coce>aid</coce> or <code>appletClass</code> is null
      */
     public AID createApplet(AID aid, byte bArray[], short bOffset,
-            byte bLength) throws SystemException;
+            byte bLength);
 
     /**
      * Install
@@ -71,17 +66,16 @@ public interface JavaCardInterface extends CardInterface {
      * loadApplet(...);
      * createApplet(...);
      * </code>
-     * @param aid applet aid or null
+     * @param aid applet aid
      * @param appletClassName fully qualified applet class name Strin
      * @param bArray the array containing installation parameters
      * @param bOffset the starting offset in bArray
      * @param bLength the length in bytes of the parameter data in bArray
      * @return applet <code>AID</code>
-     * @throws SystemException if <code>appletClass</code> not instanceof
-     * <code>javacard.framework.Applet</code>
+     * @throws java.lang.IllegalArgumentException if <code>appletClass</code> does not extend <code>Applet</code>
      */
     public AID installApplet(AID aid, String appletClassName, byte bArray[], short bOffset,
-            byte bLength) throws SystemException;
+            byte bLength);
 
     /**
      * Install
@@ -98,15 +92,13 @@ public interface JavaCardInterface extends CardInterface {
      * @param bOffset the starting offset in bArray
      * @param bLength the length in bytes of the parameter data in bArray
      * @return applet <code>AID</code>
-     * @throws SystemException if <code>appletClass</code> not instanceof
-     * <code>javacard.framework.Applet</code>
+     * @throws java.lang.IllegalArgumentException if <code>appletClass</code> does not extend <code>Applet</code>
      */
     public AID installApplet(AID aid, String appletClassName, byte[] appletJarContents, byte bArray[], short bOffset,
-            byte bLength) throws SystemException;
+            byte bLength);
 
     /**
      * Select applet by it's AID
-     * It's method must be called before start working with applet instance
      * @param aid appletId
      * @return true if applet selection success
      */
@@ -114,10 +106,8 @@ public interface JavaCardInterface extends CardInterface {
 
     /**
      * Select applet by it's AID
-     * It's method must be called before start working with applet instance
      * @param aid appletId
      * @return byte array
      */
     public byte[] selectAppletWithResult(AID aid);
-    
 }
