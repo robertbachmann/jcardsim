@@ -57,6 +57,10 @@ assertEquals(0x9000, response.getSW());
 </dependency>
 ```
 
+### Documentation
+
+* [Quick Start Guide: Using in CLI mode](./doc/quick-start-guide-using-in-cli-mode.asciidoc)
+
 ### What is the difference from Oracle Java Card Development Kit simulator?
 
 * **Implementation of javacard.security.***

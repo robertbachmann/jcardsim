@@ -148,7 +148,26 @@
                 <configuration>
                     <author>false</author>
                 </configuration>    
-            </plugin>            
+            </plugin>
+            <plugin>
+                <groupId>org.asciidoctor</groupId>
+                <artifactId>asciidoctor-maven-plugin</artifactId>
+                <version>1.5.0</version>
+                <configuration>
+                    <sourceDirectory>${project.basedir}/doc</sourceDirectory>
+                    <backend>html</backend>
+                    <sourceHighlighter>prettify</sourceHighlighter>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>output-html</id>
+                        <phase>pre-site</phase>
+                        <goals>
+                            <goal>process-asciidoc</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
