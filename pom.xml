@@ -1,16 +1,15 @@
-
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.licel</groupId>
-    <version>3.0.4-SNAPSHOT</version>
+    <groupId>io.github.robertbachmann</groupId>
+    <version>3.0.4.20150625-NIGHTLY</version>
     <packaging>jar</packaging>
-    <url>http://maven.apache.org</url>
 
     <artifactId>jcardsim</artifactId>
     <name>Java Card Runime Environment Simulator</name>
     <description>jCardSim is open-source library contains implementation of Java Card API</description>
-    
+
     <organization>
         <name>Licel Corporation</name>
         <url>https://licelus.com</url>
@@ -23,7 +22,7 @@
             <organization>Licel Corporation</organization>
         </developer>
     </developers>
-    
+
     <licenses>
         <license>
             <name>Apache 2</name>
@@ -37,21 +36,20 @@
         <netbeans.hint.license>apache20</netbeans.hint.license>
         <maven-javadoc-plugin.version>2.10.1</maven-javadoc-plugin.version>
     </properties>
-    
+
     <distributionManagement>
         <repository>
-            <id>bintray-jcardsim-maven-jCardSim</id>
-            <name>jcardsim-maven-jCardSim</name>
-            <url>https://api.bintray.com/maven/jcardsim/maven/jCardSim</url>
+            <id>bintray</id>
+            <url>https://api.bintray.com/maven/robertbachmann/maven/jcardsim</url>
         </repository>
-    </distributionManagement>    
+    </distributionManagement>
 
     <scm>
-        <connection>scm:git:git@github.com:licel/jcardsim.git</connection>
-        <developerConnection>scm:git:git@github.com:licel/jcardsim.git</developerConnection>
-        <url>git@github.com:licel/jcardsim.git</url>
+        <connection>scm:git:git@github.com:robertbachmann/jcardsim.git</connection>
+        <developerConnection>scm:git:git@github.com:robertbachmann/jcardsim.git</developerConnection>
+        <url>git@github.com:robertbachmann/jcardsim.git</url>
     </scm>
-    
+
     <profiles>
         <profile>
             <id>sign</id>
@@ -62,29 +60,6 @@
             </activation>
             <build>
                 <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-source-plugin</artifactId>
-                        <version>2.2.1</version>
-                        <executions>
-                            <execution>
-                                <id>attach-sources</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>jar-no-fork</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>                    
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>${maven-javadoc-plugin.version}</version>
-                        <configuration>
-                            <author>false</author>
-                            <bottom>&nbsp;</bottom>
-                        </configuration>    
-                    </plugin>            
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-jarsigner-plugin</artifactId>
@@ -110,12 +85,12 @@
                             <keypass>${keyPass}</keypass>
                             <storetype>${storeType}</storetype>
                         </configuration>
-                    </plugin>                
+                    </plugin>
                 </plugins>
             </build>
-        </profile> 
+        </profile>
     </profiles>
-  
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
@@ -143,16 +118,39 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>${maven-javadoc-plugin.version}</version>
                 <configuration>
+                    <bottom><![CDATA[&nbsp;]]> </bottom>
                     <links>
                         <link>http://docs.oracle.com/javase/7/docs/api/</link>
                         <link>http://docs.oracle.com/javase/7/docs/jre/api/security/smartcardio/spec/</link>
                     </links>
                     <author>false</author>
-                </configuration>    
-            </plugin>            
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -163,7 +161,7 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
-                        <configuration> 
+                        <configuration>
                             <minimizeJar>true</minimizeJar>
                             <artifactSet>
                                 <includes>
@@ -176,14 +174,14 @@
                                     <excludes>
                                         <exclude>META-INF/*.SF</exclude>
                                         <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>                                       
+                                        <exclude>META-INF/*.RSA</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
                         </configuration>
                     </execution>
                 </executions>
-            </plugin> 
+            </plugin>
         </plugins>
     </build>
 </project>
