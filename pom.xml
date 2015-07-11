@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.robertbachmann</groupId>
-    <version>3.0.4.20150625-NIGHTLY</version>
+    <version>3.0.4.20150711-NIGHTLY</version>
     <packaging>jar</packaging>
 
     <artifactId>jcardsim</artifactId>
