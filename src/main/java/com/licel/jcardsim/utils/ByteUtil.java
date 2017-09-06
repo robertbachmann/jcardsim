@@ -24,17 +24,29 @@ public final class ByteUtil {
     private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
 
     /**
-     * Create byte array from hex string
+     * <p>Create byte array from hex string.</p>
+     * <p>Spaces are ignored.</p>
+     * <p><code>#(...)</code> is replaced with the length of <code>...</code>.
+     * Alternatively <code>#{...}</code> or <code>#&lt;...&gt;</code> can be used.
+     * For example "<code>AA#(BBDD)</code>" is translated to <code>0xAA02BBDD</code>.</p>
+     * <p>Pipe ("<code>|</code>") translates ASCII characters into bytes.</p>
+     * <p>Examples:</p>
+     * <ul>
+     * <li>"<code>AA BB</code>" is converted to <code>0xAABB</code></li>
+     * <li>"<code>AA#(BBDD)</code>" is converted to <code>0xAA02BBDD</code></li>
+     * <li>"<code>|HELLO</code>" is converted to <code>0x48454C4C4F</code></li>
+     * <li>"<code>|HELLO|01</code>" is converted to <code>0x48454C4C4F01</code></li>
+     * </ul>
+     *
      * @param hexString hex string
      * @return new byte array
-     * @throws java.lang.NullPointerException if <code>hexString</code> is null
+     * @throws java.lang.NullPointerException     if <code>hexString</code> is null
+     * @throws java.lang.IllegalArgumentException if <code>hexString</code> can not be parsed
      */
     public static byte[] byteArray(String hexString) {
-        if (hexString == null) {
-            throw new NullPointerException("hexArray");
-        }
-        return Hex.decode(hexString);
+        return HexStringParser.parse(hexString);
     }
+
 
     /**
      * Convert byte array into hex string
