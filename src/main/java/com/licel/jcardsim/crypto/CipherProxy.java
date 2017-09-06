@@ -40,9 +40,6 @@ public class CipherProxy {
     public static final Cipher getInstance(byte algorithm, boolean externalAccess)
             throws CryptoException {
         Cipher instance = null;
-        if (externalAccess) {
-            CryptoException.throwIt((short) 3);
-        }
         switch (algorithm) {
             case Cipher.ALG_DES_CBC_NOPAD:
             case Cipher.ALG_DES_CBC_ISO9797_M1:
@@ -62,7 +59,7 @@ public class CipherProxy {
             case Cipher.ALG_RSA_ISO14888:
             case Cipher.ALG_RSA_ISO9796:
             case Cipher.ALG_RSA_PKCS1_OAEP:
-                instance = new AsymmetricCipherImpl(algorithm);
+                instance = new AsymmetricCipherImpl(algorithm, externalAccess);
                 break;
             default:
                 CryptoException.throwIt(CryptoException.NO_SUCH_ALGORITHM);

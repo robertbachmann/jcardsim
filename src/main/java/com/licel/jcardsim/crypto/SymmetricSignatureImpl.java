@@ -15,6 +15,9 @@
  */
 package com.licel.jcardsim.crypto;
 
+import com.licel.jcardsim.base.SimulatorSystem;
+import com.licel.jcardsim.base.TransientMemory;
+import javacard.framework.JCSystem;
 import javacard.framework.Util;
 import javacard.security.CryptoException;
 import javacard.security.Key;
@@ -45,13 +48,59 @@ import org.bouncycastle.crypto.params.ParametersWithIV;
  * @see Signature
  */
 public class SymmetricSignatureImpl extends Signature {
-    
+
     Mac engine;
     byte algorithm;
     boolean isInitialized;
+    private final TransientMemory transientMemory;
+    private byte[] sig;
     
-    public SymmetricSignatureImpl(byte algorithm) {
+    public SymmetricSignatureImpl(byte algorithm, boolean externalAccess) {
+        final byte memoryType = externalAccess ?
+                JCSystem.MEMORY_TYPE_TRANSIENT_RESET : JCSystem.MEMORY_TYPE_TRANSIENT_DESELECT;
         this.algorithm = algorithm;
+        this.transientMemory = SimulatorSystem.instance().getTransientMemory();
+
+        int size;
+        switch (algorithm) {
+            case ALG_DES_MAC4_ISO9797_M2:
+            case ALG_DES_MAC4_PKCS5:
+            case ALG_DES_MAC4_NOPAD:
+            case ALG_DES_MAC4_ISO9797_M1:
+                size = 4;
+                break;
+            case ALG_DES_MAC8_ISO9797_M1:
+            case ALG_DES_MAC8_NOPAD:
+            case ALG_DES_MAC8_ISO9797_M2:
+            case ALG_DES_MAC8_ISO9797_1_M2_ALG3:
+            case ALG_DES_MAC8_PKCS5:
+                size = 8;
+                break;
+            case ALG_AES_MAC_128_NOPAD:
+                size = 16;
+                break;
+            case ALG_HMAC_SHA1:
+                size = new SHA1Digest().getDigestSize();
+                break;
+            case ALG_HMAC_SHA_256:
+                size = new HMac(new SHA256Digest()).getMacSize();
+                break;
+            case ALG_HMAC_SHA_384:
+                size = new HMac(new SHA384Digest()).getMacSize();
+                break;
+            case ALG_HMAC_SHA_512:
+                size = new HMac(new SHA512Digest()).getMacSize();
+                break;
+            case ALG_HMAC_MD5:
+                size = new HMac(new MD5Digest()).getMacSize();
+                break;
+            case ALG_HMAC_RIPEMD160:
+                size = new HMac(new RIPEMD160Digest()).getMacSize();
+                break;
+            default:
+                throw new CryptoException(CryptoException.NO_SUCH_ALGORITHM);
+        }
+        this.sig = transientMemory.makeByteArray(size, memoryType);
     }
     
     public void init(Key theKey, byte theMode) throws CryptoException {
@@ -179,7 +228,6 @@ public class SymmetricSignatureImpl extends Signature {
             CryptoException.throwIt(CryptoException.ILLEGAL_USE);
         }
         engine.update(inBuff, inOffset, inLength);
-        byte[] sig = new byte[getLength()];
         engine.doFinal(sig, (short) 0);
         engine.reset();
         return Util.arrayCompare(sig, (short) 0, sigBuff, sigOffset, (short) sig.length) == 0;

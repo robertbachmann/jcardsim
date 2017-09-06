@@ -34,8 +34,10 @@ public class CRC32 extends Checksum {
         4, -63, 29, -73
     };
 
-    public CRC32() {
-        crc32 = JCSystem.makeTransientByteArray(LENGTH, JCSystem.CLEAR_ON_DESELECT);
+    public CRC32(boolean externalAccess) {
+        final byte memoryType = externalAccess ?
+                JCSystem.MEMORY_TYPE_TRANSIENT_RESET : JCSystem.MEMORY_TYPE_TRANSIENT_DESELECT;
+        crc32 = JCSystem.makeTransientByteArray(LENGTH, memoryType);
     }
 
     public byte getAlgorithm() {

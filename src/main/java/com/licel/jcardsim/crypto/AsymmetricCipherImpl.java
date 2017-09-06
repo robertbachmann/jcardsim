@@ -15,6 +15,8 @@
  */
 package com.licel.jcardsim.crypto;
 
+import com.licel.jcardsim.base.SimulatorSystem;
+import com.licel.jcardsim.base.TransientMemory;
 import javacard.framework.JCSystem;
 import javacard.framework.Util;
 import javacard.security.CryptoException;
@@ -39,9 +41,11 @@ public class AsymmetricCipherImpl extends Cipher {
     boolean isInitialized;
     byte[] buffer;
     short bufferPos;
+    private final boolean externalAccess;
 
-    public AsymmetricCipherImpl(byte algorithm) {
+    public AsymmetricCipherImpl(byte algorithm, boolean externalAccess) {
         this.algorithm = algorithm;
+        this.externalAccess = externalAccess;
         switch (algorithm) {
             case ALG_RSA_NOPAD:
                 engine = new RSAEngine();
@@ -67,9 +71,12 @@ public class AsymmetricCipherImpl extends Cipher {
         if (!(theKey instanceof KeyWithParameters)) {
             CryptoException.throwIt(CryptoException.ILLEGAL_VALUE);
         }
+        final byte memoryType = externalAccess ?
+                JCSystem.MEMORY_TYPE_TRANSIENT_RESET : JCSystem.MEMORY_TYPE_TRANSIENT_DESELECT;
+
         KeyWithParameters key = (KeyWithParameters) theKey;
         engine.init(theMode == MODE_ENCRYPT, key.getParameters());
-        buffer = JCSystem.makeTransientByteArray((short) engine.getInputBlockSize(), JCSystem.CLEAR_ON_DESELECT);
+        buffer = JCSystem.makeTransientByteArray((short) engine.getInputBlockSize(), memoryType);
         bufferPos = 0;
         isInitialized = true;
     }

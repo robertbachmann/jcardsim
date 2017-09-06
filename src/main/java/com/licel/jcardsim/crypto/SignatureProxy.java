@@ -39,9 +39,7 @@ public class SignatureProxy {
     public static final Signature getInstance(byte algorithm, boolean externalAccess)
             throws CryptoException {
         Signature instance = null;
-        if (externalAccess) {
-            CryptoException.throwIt(CryptoException.NO_SUCH_ALGORITHM);
-        }
+
         switch (algorithm) {
             case Signature.ALG_RSA_SHA_ISO9796:
             case Signature.ALG_RSA_SHA_PKCS1:
@@ -58,7 +56,7 @@ public class SignatureProxy {
             case Signature.ALG_ECDSA_SHA_384:
             case Signature.ALG_ECDSA_SHA_512:
             case Signature.ALG_RSA_SHA_ISO9796_MR:
-                instance = new AsymmetricSignatureImpl(algorithm);
+                instance = new AsymmetricSignatureImpl(algorithm, externalAccess);
                 break;
             case Signature.ALG_DES_MAC4_NOPAD:
             case Signature.ALG_DES_MAC8_NOPAD:
@@ -77,7 +75,7 @@ public class SignatureProxy {
             case Signature.ALG_HMAC_MD5:                
             case Signature.ALG_HMAC_RIPEMD160:
             case Signature.ALG_AES_CMAC_128:
-                instance = new SymmetricSignatureImpl(algorithm);
+                instance = new SymmetricSignatureImpl(algorithm, externalAccess);
                 break;
 
             default:

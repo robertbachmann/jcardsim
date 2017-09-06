@@ -17,14 +17,16 @@ package com.licel.jcardsim.base;
 
 import com.licel.jcardsim.utils.AIDUtil;
 import com.licel.jcardsim.utils.BiConsumer;
+import com.licel.jcardsim.utils.Supplier;
 import javacard.framework.*;
 import javacardx.apdu.ExtendedLength;
+import org.bouncycastle.crypto.digests.SHA256Digest;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -39,8 +41,8 @@ public class SimulatorRuntime {
     protected final SortedMap<AID, ApplicationInstance> applets = new TreeMap<AID, ApplicationInstance>(AIDUtil.comparator());
     /** storage for load files */
     protected final SortedMap<AID, LoadFile> loadFiles = new TreeMap<AID, LoadFile>(AIDUtil.comparator());
-    /** storage for automatically generated loadFile AIDs */
-    protected final SortedMap<AID, AID> generatedLoadFileAIDs = new TreeMap<AID, AID>(AIDUtil.comparator());
+    /** maps applet AIDs to LoadFile AIDs */
+    protected final Map<AID, AID> appletAIDToLoadFileAID = new HashMap<AID, AID>();
     /** method for resetting APDUs */
     protected final Method apduPrivateResetMethod;
     /** outbound response byte array buffer */
@@ -52,10 +54,6 @@ public class SimulatorRuntime {
     /** extended APDU */
     protected final APDU extendedAPDU;
 
-    /** current selected applet */
-    protected AID currentAID;
-    /** previous selected applet */
-    protected AID previousAID;
     /** outbound response byte array buffer size */
     protected short responseBufferSize = 0;
     /** if the applet is currently being selected */
@@ -68,6 +66,8 @@ public class SimulatorRuntime {
     protected byte transactionDepth = 0;
     /** previousActiveObject */
     protected Object previousActiveObject;
+    /** context managers. one per channel */
+    private AppletContextManager[] contextManagers = new AppletContextManager[] {new AppletContextManager()};
 
     public SimulatorRuntime() {
         this(new TransientMemory());
@@ -106,7 +106,7 @@ public class SimulatorRuntime {
      * @return current applet context AID or null
      */
     public AID getAID() {
-        return currentAID;
+        return getAppletContextManagerForActiveChannel().getActiveAID();
     }
 
     /**
@@ -144,7 +144,7 @@ public class SimulatorRuntime {
      * @return previous selected applet context AID or null
      */
     public AID getPreviousContextAID() {
-        return previousAID;
+        return getAppletContextManagerForActiveChannel().getPreviousContextAID();
     }
 
     /**
@@ -159,24 +159,6 @@ public class SimulatorRuntime {
         ApplicationInstance a = lookupApplet(aid);
         if(a == null) return null;
         else return a.getApplet();
-    }
-
-    /**
-     * Load applet
-     * @param aid Applet AID
-     * @param appletClass Applet class
-     */
-    public void loadApplet(AID aid, Class<? extends Applet> appletClass) {
-        if (generatedLoadFileAIDs.keySet().contains(aid)) {
-            throw new SystemException(SystemException.ILLEGAL_AID);
-        }
-        // generate a load file AID
-        byte[] generated = new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 0, 0};
-        Util.setShort(generated, (short) 3, (short) generatedLoadFileAIDs.size());
-        AID generatedAID = AIDUtil.create(generated);
-
-        generatedLoadFileAIDs.put(aid, generatedAID);
-        loadLoadFile(new LoadFile(generatedAID, generatedAID, appletClass));
     }
 
     /**
@@ -197,6 +179,7 @@ public class SimulatorRuntime {
      */
     protected void deleteApplet(AID aid) {
         activateSimulatorRuntimeInstance();
+
         ApplicationInstance applicationInstance = lookupApplet(aid);
         if (applicationInstance == null) {
             throw new SystemException(SystemException.ILLEGAL_AID);
@@ -208,7 +191,8 @@ public class SimulatorRuntime {
             return;
         }
 
-        if (getApplet(currentAID) == applet) {
+        AID currentAppletAID = getAppletContextManagerForActiveChannel().getActiveAID();
+        if (getApplet(currentAppletAID) == applet) {
             deselect(applicationInstance);
         }
 
@@ -251,7 +235,11 @@ public class SimulatorRuntime {
             AID newAid = findAppletForSelectApdu(command, apduCase);
             if (newAid != null) {
                 deselect(lookupApplet(getAID()));
-                currentAID = newAid;
+
+                AppletContextManager contextManager = getAppletContextManagerForActiveChannel();
+                contextManager.clear();
+                contextManager.enterContext(appletAIDToLoadFileAID.get(newAid), newAid);
+
                 applet = getApplet(getAID());
                 selecting = true;
             }
@@ -381,8 +369,9 @@ public class SimulatorRuntime {
         Arrays.fill(responseBuffer, (byte) 0);
         transactionDepth = 0;
         responseBufferSize = 0;
-        currentAID = null;
-        previousAID = null;
+        for (AppletContextManager manager : contextManagers) {
+            manager.clear();
+        }
         transientMemory.clearOnReset();
     }
 
@@ -399,12 +388,13 @@ public class SimulatorRuntime {
         }
 
         loadFiles.clear();
-        generatedLoadFileAIDs.clear();
+        appletAIDToLoadFileAID.clear();
         Arrays.fill(responseBuffer, (byte) 0);
         transactionDepth = 0;
         responseBufferSize = 0;
-        currentAID = null;
-        previousAID = null;
+        for (AppletContextManager manager : contextManagers) {
+            manager.clear();
+        }
         transientMemory.clearOnReset();
         transientMemory.forgetBuffers();
     }
@@ -525,12 +515,34 @@ public class SimulatorRuntime {
      * @return the shareable interface object or <code>null</code>
      */
     public Shareable getSharedObject(AID serverAID, byte parameter) {
-        Applet serverApplet = getApplet(serverAID);
-        if (serverApplet != null) {
-            return serverApplet.getShareableInterfaceObject(getAID(),
-                    parameter);
+        final AID callerAID = getAID();
+        final AID callerPackageAID = appletAIDToLoadFileAID.get(callerAID);
+        final AID serverPackageAID = appletAIDToLoadFileAID.get(serverAID);
+
+        final Applet serverApplet = getApplet(serverAID);
+        if (serverApplet == null) {
+            return null;
         }
-        return null;
+
+        final AppletContextManager context = getAppletContextManagerForActiveChannel();
+        try {
+            context.enterContext(callerPackageAID, callerAID);
+            context.enterContext(serverPackageAID, serverAID);
+            final Shareable shareable = serverApplet.getShareableInterfaceObject(callerAID,
+                    parameter);
+            if (shareable == null) {
+                return null;
+            }
+            return new AppletFirewall(
+                    new Supplier<AppletContextManager>() {
+                        public AppletContextManager get() {
+                            return getAppletContextManagerForActiveChannel();
+                        }
+                    }, shareable).getShareable();
+        } finally {
+            context.leaveContext();
+            context.leaveContext();
+        }
     }
 
     /**
@@ -582,11 +594,24 @@ public class SimulatorRuntime {
     }
 
     public void installApplet(final AID appletAid, byte[] bArray, short bOffset, byte bLength) {
-        AID generatedAID = generatedLoadFileAIDs.get(appletAid);
-        if (generatedAID == null || !loadFiles.keySet().contains(generatedAID)) {
+        LoadFile loadFile = findLoadFile(appletAid);
+        if (loadFile == null) {
             throw new SystemException(SystemException.ILLEGAL_AID);
         }
-        installApplet(generatedAID, generatedAID, appletAid, bArray, bOffset, bLength);
+        installApplet(loadFile.getAid(), appletAid, appletAid, bArray, bOffset, bLength);
+    }
+
+    private LoadFile findLoadFile(AID appletAid) {
+        if (appletAid == null) {
+            return null;
+        }
+        for (LoadFile loadFile : loadFiles.values()) {
+            Module m = loadFile.getModule(appletAid);
+            if (m != null) {
+                return loadFile;
+            }
+        }
+        return null;
     }
 
     public void installApplet(AID loadFileAID, AID moduleAID, final AID appletAID,
@@ -644,6 +669,45 @@ public class SimulatorRuntime {
         if (callCount.get() != 1) {
             throw new SystemException(SystemException.ILLEGAL_AID);
         }
+        appletAIDToLoadFileAID.put(appletAID, loadFileAID);
+    }
+
+    protected AppletContextManager getAppletContextManagerForActiveChannel() {
+        return contextManagers[0];
+    }
+
+    public void wrapAppletIntoLoadFile(AID aid, Class<? extends Applet> aClass) {
+        final String packageName = aClass.getPackage() != null ? aClass.getPackage().getName() : "";
+        final byte[] loadFileAIDBytes = new byte[16];
+        loadFileAIDBytes[0] = (byte) 0xF0;
+        loadFileAIDBytes[1] = (byte) 'J';
+        loadFileAIDBytes[2] = (byte) 'C';
+        loadFileAIDBytes[3] = (byte) 'S';
+
+        final SHA256Digest digest = new SHA256Digest();
+        final byte[] buffer = new byte[digest.getDigestSize()];
+        try {
+            byte[] bytes = packageName.getBytes("UTF-8");
+            digest.update(bytes, 0, bytes.length);
+        } catch (UnsupportedEncodingException e) {
+            // ignore
+        }
+        digest.doFinal(buffer, 0);
+
+        System.arraycopy(buffer, 0, loadFileAIDBytes, 4, loadFileAIDBytes.length - 4);
+
+        final AID loadFileAID = AIDUtil.create(loadFileAIDBytes);
+        final LoadFile loadFile = loadFiles.get(loadFileAID);
+        final List<Module> modules = new ArrayList<Module>();
+
+        if (loadFile != null) {
+            for (Module m : loadFile.getModules()) {
+                modules.add(m);
+            }
+        }
+
+        modules.add(new Module(aid, aClass));
+        loadFiles.put(loadFileAID, new LoadFile(loadFileAID, modules.toArray(new Module[modules.size()])));
     }
 
     /** Represents an Applet instance */

@@ -163,7 +163,7 @@ public class Simulator implements JavaCardInterface {
      */
     public AID loadApplet(AID aid, Class<? extends Applet> appletClass) throws SystemException {
         synchronized (runtime) {
-            runtime.loadApplet(aid, requireExtendsApplet(appletClass));
+            runtime.wrapAppletIntoLoadFile(aid, requireExtendsApplet(appletClass));
         }
         return aid;
     }

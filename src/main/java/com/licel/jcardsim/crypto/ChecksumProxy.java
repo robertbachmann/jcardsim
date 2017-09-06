@@ -39,17 +39,14 @@ public class ChecksumProxy {
      */
     public static final Checksum getInstance(byte algorithm, boolean externalAccess)
             throws CryptoException {
-        if (externalAccess) {
-            CryptoException.throwIt(CryptoException.NO_SUCH_ALGORITHM);
-        }
         Checksum instance = null;
         switch (algorithm) {
             case Checksum.ALG_ISO3309_CRC16:
-                instance = new CRC16();
+                instance = new CRC16(externalAccess);
                 break;
 
             case Checksum.ALG_ISO3309_CRC32:
-                instance = new CRC32();
+                instance = new CRC32(externalAccess);
                 break;
 
             default:

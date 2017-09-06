@@ -67,7 +67,7 @@ public class SymmetricCipherImpl extends Cipher {
                 break;
         }
         selectCipherEngine(theKey);
-        byte[] iv = JCSystem.makeTransientByteArray(bLen, JCSystem.CLEAR_ON_RESET);
+        byte[] iv = new byte[bLen];
         Util.arrayCopyNonAtomic(bArray, bOff, iv, (short) 0, bLen);
         engine.init(theMode == MODE_ENCRYPT, new ParametersWithIV(((SymmetricKeyImpl) theKey).getParameters(), iv));
         isInitialized = true;

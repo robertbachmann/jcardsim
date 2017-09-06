@@ -52,7 +52,7 @@ public class AsymmetricSignatureImpl extends Signature implements SignatureMessa
     boolean isRecovery;
     byte[] preSig;
 
-    public AsymmetricSignatureImpl(byte algorithm) {
+    public AsymmetricSignatureImpl(byte algorithm, boolean externalAccess) {
         this.algorithm = algorithm;
         isRecovery = false;
         switch (algorithm) {

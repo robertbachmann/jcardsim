@@ -31,8 +31,10 @@ public class CRC16 extends Checksum {
     static final byte LENGTH = 2;
     private byte crc16[];
 
-    public CRC16() {
-        crc16 = JCSystem.makeTransientByteArray(LENGTH, JCSystem.CLEAR_ON_DESELECT);
+    public CRC16(boolean externalAccess) {
+        final byte memoryType = externalAccess ?
+                JCSystem.MEMORY_TYPE_TRANSIENT_RESET : JCSystem.MEMORY_TYPE_TRANSIENT_DESELECT;
+        crc16 = JCSystem.makeTransientByteArray(LENGTH, memoryType);
     }
 
     public byte getAlgorithm() {
